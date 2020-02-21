@@ -25,7 +25,7 @@ public class Main extends Base
         super.onCreate(savedInstanceState);
         PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
         setContentView(R.layout.act_main);
-        keyMap = new KeyboardMapping("zsxdcvgbhnjm,l.ç;q2w3e4rt6y7ui9o0p-´[", 48);
+        keyMap = new KeyboardMapping("zsxdcvgbhnjm,l.'/q2w3e4rt6y7ui9o0p-[]\\", 48);
         etInput = (EditText)findViewById(R.id.etInput);
         driver = new MidiDriver();
         etInput.setOnKeyListener(new EditText.OnKeyListener()
@@ -72,6 +72,19 @@ public class Main extends Base
         sendMidi(0x90, note, 0);
     }
 
+    private void processControlCommands(int keyCode, KeyEvent event)
+        {
+        switch (event.getKeyCode())
+            {
+            case 19: // up arrow
+                keyMap.changeOctave(1);
+                break;
+            case 20: // down arrow
+                keyMap.changeOctave(-1);
+                break;
+        }
+    }
+
     private void processNote(KeyEvent event)
         {
         int keyCode = event.getUnicodeChar(event.getMetaState());
@@ -84,6 +97,10 @@ public class Main extends Base
             {
             keyMap.release(keyCode);
             noteOff(keyMap.getNote(keyCode));
+        }
+        else if (event.getAction() == event.ACTION_UP)
+            {
+            processControlCommands(keyCode, event);
         }
     }
 }

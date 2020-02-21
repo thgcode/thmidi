@@ -52,4 +52,15 @@ public class KeyboardMapping
         {
         return keys.get(key);
     }
+
+    public void changeOctave(int increment)
+        {
+        int newOctave = (baseNote / 12) + increment;
+        if (newOctave > 8)
+            newOctave = 8;
+        else if (newOctave < 0)
+            newOctave = 0;
+        baseNote = newOctave * 12;
+        remap();
+    }
 }
