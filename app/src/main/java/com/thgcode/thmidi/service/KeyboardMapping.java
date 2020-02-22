@@ -53,14 +53,18 @@ public class KeyboardMapping
         return keys.get(key);
     }
 
-    public void changeOctave(int increment)
+    public int getOctave()
         {
-        int newOctave = (baseNote / 12) + increment;
-        if (newOctave > 8)
-            newOctave = 8;
-        else if (newOctave < 0)
-            newOctave = 0;
-        baseNote = newOctave * 12;
+        return baseNote / 12;
+    }
+
+    public void changeOctave(int octave)
+        {
+        if (octave > 7)
+            octave = 7;
+        else if (octave < 0)
+            octave = 0;
+        baseNote = octave * 12;
         remap();
     }
 }
