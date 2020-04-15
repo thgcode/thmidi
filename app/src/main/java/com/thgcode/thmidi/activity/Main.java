@@ -9,7 +9,11 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.widget.EditText;
 import com.thgcode.thmidi.App;
+import com.thgcode.thmidi.midi.iMidiNoteListener;
+import com.thgcode.thmidi.midi.iMidiOutput;
 import com.thgcode.thmidi.midi.MidiConstants;
+import com.thgcode.thmidi.midi.MidiEffect;
+import com.thgcode.thmidi.midi.MidiLayerEffect;
 import com.thgcode.thmidi.service.iController;
 import com.thgcode.thmidi.service.ChannelChangePrompt;
 import com.thgcode.thmidi.service.InstrumentChangePrompt;
@@ -17,9 +21,11 @@ import com.thgcode.thmidi.service.KeyboardMapping;
 import com.thgcode.thmidi.service.OctavePrompt;
 import com.thgcode.thmidi.service.Prompt;
 import com.thgcode.thmidi.R;
+import java.util.ArrayList;
+import java.util.List;
 import org.billthefarmer.mididriver.MidiDriver;
 
-public class Main extends Base implements iController
+public class Main extends Base implements iController, iMidiOutput
 {
     private EditText etInput;
     private MidiDriver driver;
@@ -27,6 +33,8 @@ public class Main extends Base implements iController
     private Prompt currentPrompt;
     private int channel;
     private int []instruments;
+    private MidiEffect []effects;
+    private List <iMidiNoteListener> listeners;
 
     @Override
     public void onCreate(Bundle savedInstanceState)
@@ -44,6 +52,12 @@ public class Main extends Base implements iController
             {
             instruments[i] = 0;
         }
+        effects = new MidiEffect[MidiConstants.maxMidiChannels];
+        for (int i = 0; i < effects.length; i++)
+            {
+            effects[i] = null;
+        }
+    listeners = new ArrayList <iMidiNoteListener>();
         etInput.setOnKeyListener(new EditText.OnKeyListener()
             {
             @Override
@@ -88,10 +102,20 @@ public class Main extends Base implements iController
 
     protected void noteOn(int note)
         {
-        sendMidi(0x90 + channel, note, 127);
+        noteOn(this.channel, note, 127);
     }
 
     protected void noteOff(int note)
+        {
+        noteOff(this.channel, note);
+    }
+
+    public void noteOn(int channel, int note, int velocity)
+        {
+        sendMidi(0x90 + channel, note, velocity);
+    }
+
+    public void noteOff(int channel, int note)
         {
         sendMidi(0x90 + channel, note, 0);
     }
@@ -111,6 +135,16 @@ public class Main extends Base implements iController
             case KeyEvent.KEYCODE_F2:
                 new InstrumentChangePrompt(this, instruments[channel]);
                 return true;
+            case KeyEvent.KEYCODE_F10:
+                if (effects[channel] != null)
+                    {
+                    removeEffect(channel);
+                }
+                else
+                    {
+                    addEffect(new MidiLayerEffect(channel, this));
+                }
+                return true;
             case 19: // up arrow
                 currentPrompt.increaseOrDecreaseValue(1);
                 return true;
@@ -126,13 +160,23 @@ public class Main extends Base implements iController
         int keyCode = event.getUnicodeChar(event.getMetaState());
         if (event.getAction() == event.ACTION_DOWN && !processControlKeys(keyCode, event) && keyMap.contains(keyCode) && !keyMap.isPressed(keyCode))
             {
+            int note = keyMap.getNote(keyCode);
             keyMap.press(keyCode);
-            noteOn(keyMap.getNote(keyCode));
+            noteOn(note);
+            for (iMidiNoteListener listener: listeners)
+                {
+                listener.onNoteOn(channel, note, 127);
+            }
         }
         else if (event.getAction() == event.ACTION_UP && keyMap.contains(keyCode))
             {
+            int note = keyMap.getNote(keyCode);
             keyMap.release(keyCode);
-            noteOff(keyMap.getNote(keyCode));
+            noteOff(note);
+            for (iMidiNoteListener listener: listeners)
+                {
+                listener.onNoteOff(channel, note);
+            }
         }
     }
 
@@ -181,5 +225,36 @@ public class Main extends Base implements iController
             {
             currentPrompt = prompt;
         }
+    }
+
+    private boolean addEffect(MidiEffect effect)
+        {
+        if (effects[effect.getChannel()] != null)
+            {
+            return false;
+        }
+        effects[effect.getChannel()] = effect;
+        return true;
+    }
+
+    private boolean removeEffect(int channel)
+        {
+        if (effects[channel] == null)
+            {
+            return false;
+        }
+        effects[channel].delete();
+        effects[channel] = null;
+        return true;
+    }
+
+    public void addMidiNoteListener(iMidiNoteListener listener)
+        {
+        listeners.add(listener);
+    }
+
+    public void removeMidiNoteListener(iMidiNoteListener listener)
+        {
+        listeners.remove(listener);
     }
 }
