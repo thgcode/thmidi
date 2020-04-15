@@ -9,6 +9,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.widget.EditText;
 import com.thgcode.thmidi.App;
+import com.thgcode.thmidi.midi.MidiConstants;
 import com.thgcode.thmidi.service.iController;
 import com.thgcode.thmidi.service.ChannelChangePrompt;
 import com.thgcode.thmidi.service.InstrumentChangePrompt;
@@ -38,7 +39,7 @@ public class Main extends Base implements iController
         etInput = (EditText)findViewById(R.id.etInput);
         driver = new MidiDriver();
         channel = 0;
-        instruments = new int[15];
+        instruments = new int[MidiConstants.maxMidiChannels];
         for (int i = 0; i < instruments.length; i++)
             {
             instruments[i] = 0;
@@ -147,9 +148,9 @@ public class Main extends Base implements iController
             {
             instrument = 0;
         }
-        else if (instrument > 127)
+        else if (instrument > MidiConstants.maxInstruments)
             {
-            instrument = 127;
+            instrument = MidiConstants.maxInstruments;
         }
         sendMidi(0xC0 + channel, instrument);
         instruments[channel] = instrument;
@@ -162,9 +163,9 @@ public class Main extends Base implements iController
             {
             channel = 0;
         }
-        else if (channel > 15)
+        else if (channel > MidiConstants.maxMidiChannels)
             {
-            channel = 15;
+            channel = MidiConstants.maxMidiChannels;
         }
         this.channel = channel;
         return channel;
